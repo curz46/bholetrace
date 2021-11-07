@@ -17,6 +17,8 @@ void display() {
 }
 
 void init() {
+    // TODO: figure out how to bundle into the executable
+    init_shader_pair("src/shader/render.vert", "src/shader/render.frag");
 }
 
 int main(int argc, char** argv){

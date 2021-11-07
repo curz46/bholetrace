@@ -4,10 +4,10 @@
 #include <GL/glew.h>
 #include <GL/glut.h>
 
-char * load_shader(char *fname);
+char * load_shader(const char *fname);
 
 void add_shader(GLuint program, const char *text, GLenum type);
 
-GLuint compile_shaders();
+GLuint init_shader_pair(const char *vertname, const char *fragname);
 
 #endif // BLKHOLE_SHADERS__H
