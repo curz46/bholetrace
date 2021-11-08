@@ -71,6 +71,9 @@ GLuint init_shader_pair(const char *vertname, const char *fragname) {
         exit(1);
     }
 
+    //printf("Loaded vertex shader: %s\n", vert_content);
+    //printf("Loaded fragment shader: %s\n", frag_content);
+
     add_shader(program, vert_content, GL_VERTEX_SHADER);
     add_shader(program, frag_content, GL_FRAGMENT_SHADER);
 
