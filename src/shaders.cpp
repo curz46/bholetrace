@@ -49,6 +49,56 @@ void add_shader(GLuint program, const char* text, GLenum type) {
     glAttachShader(program, obj);
 }
 
+GLuint init_compute_shader(const char *computename) {
+	//Start the process of setting up our shaders by creating a program ID
+	//Note: we will link all the shaders together into this ID
+    GLuint program = glCreateProgram();
+    if (program == 0) {
+        fprintf(stderr, "Error creating shader program\n");
+        exit(1);
+    }
+
+    char *content = load_shader(computename);
+
+    if (content == 0) {
+        fprintf(stderr, "Failed to load compute shader %s\n", computename);
+        exit(1);
+    }
+
+    add_shader(program, content, GL_COMPUTE_SHADER);
+
+    GLint success = 0;
+    GLchar error[1024] = { 0 };
+
+	// After compiling all shader objects and attaching them to the program, we can finally link it
+    glLinkProgram(program);
+	// check for program related errors using glGetProgramiv
+    glGetProgramiv(program, GL_LINK_STATUS, &success);
+	if (success == 0) {
+		glGetProgramInfoLog(program, sizeof(error), NULL, error);
+		fprintf(stderr, "Error linking shader program: '%s'\n", error);
+        exit(1);
+	}
+
+	// program has been successfully linked but needs to be validated to check whether the program can execute given the current pipeline state
+    glValidateProgram(program);
+	// check for program related errors using glGetProgramiv
+    glGetProgramiv(program, GL_VALIDATE_STATUS, &success);
+    if (!success) {
+        glGetProgramInfoLog(program, sizeof(error), NULL, error);
+        fprintf(stderr, "Invalid shader program: '%s'\n", error);
+        exit(1);
+    }
+	// Finally, use the linked shader program
+	// Note: this program will stay in effect for all draw calls until you replace it with another or explicitly disable its use
+    //glUseProgram(0);
+
+    // dealloc
+    free(content);
+
+	return program;
+}
+
 GLuint init_shader_pair(const char *vertname, const char *fragname) {
 	//Start the process of setting up our shaders by creating a program ID
 	//Note: we will link all the shaders together into this ID
@@ -101,7 +151,7 @@ GLuint init_shader_pair(const char *vertname, const char *fragname) {
     }
 	// Finally, use the linked shader program
 	// Note: this program will stay in effect for all draw calls until you replace it with another or explicitly disable its use
-    glUseProgram(program);
+    //glUseProgram(program);
 
     // dealloc
     free(vert_content);

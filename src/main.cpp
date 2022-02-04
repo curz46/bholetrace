@@ -4,18 +4,45 @@
 
 #include "blkhole/shaders.hpp"
 
-// Macro for indexing vertex buffer
-#define BUFFER_OFFSET(i) ((char *)NULL + (i))
-
 using namespace std;
 
+const int TEXTURE_WIDTH = 400;
+const int TEXTURE_HEIGHT = 225;
+
+// The texture used for the compute shader to store its results
+GLuint texture;
+
+// The program which computes the raycasts
+GLuint compute_program;
+// The (trivial) program which renders the resultant texture to the screen
+GLuint shader_program;
+
+// Vertex Array Object, Vertex Buffer Object
 GLuint vao;
 GLuint vbo;
 
 void display() {
+    glActiveTexture(GL_TEXTURE0);
+
     while(1) {
+        // COMPUTE
+        glUseProgram(compute_program);
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+
+		glUniform2f(0, TEXTURE_WIDTH, TEXTURE_HEIGHT);
+        glUniform1i(1, 0);
+		glDispatchCompute(TEXTURE_WIDTH, TEXTURE_HEIGHT, 1);
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+        // SHADER
+        glUseProgram(shader_program);
+
+        //glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBindVertexArray(vao);
+
         glClear(GL_COLOR_BUFFER_BIT);
-        // NB: Make the call to draw the geometry in the currently activated vertex buffer. This is where the GPU starts to work!
         glDrawArrays(GL_TRIANGLES, 0, 6);
         glutSwapBuffers();
     }
@@ -23,13 +50,12 @@ void display() {
 
 void init() {
     // TODO: figure out how to bundle into the executable
-    init_shader_pair("src/shader/render.vert", "src/shader/render.frag");
+    compute_program = init_compute_shader("src/shader/raycast.comp");
+    shader_program  = init_shader_pair("src/shader/render.vert", "src/shader/render.frag");
 
-    //GLfloat vertices[] = {
-    //    -0.5f, -0.5f, 0.0f,
-    //    0.5f, -0.5f, 0.0f,
-    //    0.0f,  0.5f, 0.0f
-    //};  
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_TEXTURE_2D);
+
     GLfloat vertices[] = {
         -1.f, -1.f,
         -1.f, 1.f,
@@ -48,8 +74,21 @@ void init() {
 
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
     glEnableVertexAttribArray(0);
+    //glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)(2 * sizeof(float)));
+    //glEnableVertexAttribArray(1);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    glActiveTexture(GL_TEXTURE0);
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexImage2D(
+		GL_TEXTURE_2D, 0, GL_RGBA32F, TEXTURE_WIDTH, TEXTURE_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+    glBindImageTexture(0, texture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 }
 
 int main(int argc, char** argv){
