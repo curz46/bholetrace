@@ -24,3 +24,8 @@ $(exe): $(obj)
 
 out/%.o: src/%.cpp
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
+
+.PHONY: clean
+clean:
+	rm out -r
+	rm bin -r
