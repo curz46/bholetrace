@@ -24,6 +24,11 @@ GLuint vbo;
 void display() {
     glActiveTexture(GL_TEXTURE0);
 
+    GLuint tex;
+    glGenTextures(1, &tex);
+    //glBindTexture(GL_TEXTURE_2D, tex);
+    glBindImageTexture(0, tex, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+
     while(1) {
         // COMPUTE
         glUseProgram(compute_program);
@@ -32,7 +37,8 @@ void display() {
         glBindVertexArray(0);
 
 		glUniform2f(0, TEXTURE_WIDTH, TEXTURE_HEIGHT);
-        glUniform1i(1, 0);
+        glUniform1i(glGetUniformLocation(shader_program, "sampler"), 0);
+
 		glDispatchCompute(TEXTURE_WIDTH, TEXTURE_HEIGHT, 1);
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
