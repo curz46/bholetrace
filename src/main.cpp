@@ -2,7 +2,7 @@
 #include <GL/glut.h>
 #include <iostream>
 
-#include "blkhole/shaders.hpp"
+#include "blkhole/loadshaders.hpp"
 
 using namespace std;
 
@@ -57,8 +57,8 @@ void display() {
 
 void init() {
     // TODO: figure out how to bundle into the executable
-    compute_program = init_compute_shader("src/shader/raycast.comp");
-    shader_program  = init_shader_pair("src/shader/render.vert", "src/shader/render.frag");
+    compute_program = init_compute_shader("shaders/raycast.comp");
+    shader_program  = init_shader_pair("shaders/render.vert", "shaders/render.frag");
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_TEXTURE_2D);

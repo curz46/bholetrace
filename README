@@ -1,6 +1,6 @@
 REQUIREMENTS
 
-Install these on your machine before attempting to build BLKHOLETRACE.
+Install these on your machine before attempting to build BHOLETRACE.
 
 * freeglut3-dev (glut)
 * libglew-dev (glew)
@@ -10,3 +10,5 @@ CREDITS
 * https://github.com/blottn/opengl-quickstart/blob/master/main.cpp
 
 Used as a reference for initial GLEW/shader boilerplate.
+
+* https://github.com/nothings/stb/blob/master/stb_image.h (image loading)
