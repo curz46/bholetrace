@@ -1,16 +1,30 @@
+#include <iostream>
 #include <GL/glew.h>
 #include <GL/glut.h>
-#include <iostream>
 
-#include "blkhole/loadshaders.hpp"
+#include <glm/vec3.hpp>
+
+#include "bholetrace/load_shaders.hpp"
+#include "bholetrace/load_textures.hpp"
+#include "bholetrace/keys.hpp"
 
 using namespace std;
 
 const int TEXTURE_WIDTH = 400;
 const int TEXTURE_HEIGHT = 225;
 
+int ticks = 0;
+
+struct Camera {
+    glm::vec3 pos;
+    glm::vec3 rot;
+    float fov;
+} camera;
+
 // The texture used for the compute shader to store its results
-GLuint texture;
+GLuint transfer_tex;
+// The skybox texture (cube starmap)
+GLuint skybox_tex;
 
 // The program which computes the raycasts
 GLuint compute_program;
@@ -21,15 +35,31 @@ GLuint shader_program;
 GLuint vao;
 GLuint vbo;
 
-void display() {
-    GLuint tex;
-    glGenTextures(1, &tex);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, tex);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, TEXTURE_WIDTH, TEXTURE_HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr);
-    glBindImageTexture(0, tex, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+static void on_key_press(unsigned char key, int _x, int _y) {
+    key_toggle(key, 1, ticks);
+    printf("on_key_press: %c\n", key);
+}
 
+static void on_key_release(unsigned char key, int _x, int _y) {
+    key_toggle(key, 0, ticks);
+    printf("on_key_release: %c\n", key);
+}
+
+static void update() {
+    ticks++;
+
+    //printf("Update!\n");
+
+    if (key_pressed('a')) {
+        camera.rot.x += 5;
+        printf("Rotated camera on +rotX.\n");
+    } else if (key_pressed('d')) {
+        camera.rot.x -= 5;
+        printf("Rotated camera on -rotX.\n");
+    }
+}
+
+void display() {
     while(1) {
         // COMPUTE
         glUseProgram(compute_program);
@@ -38,7 +68,8 @@ void display() {
         glBindVertexArray(0);
 
 		glUniform2f(0, TEXTURE_WIDTH, TEXTURE_HEIGHT);
-        glUniform1i(glGetUniformLocation(shader_program, "sampler"), 0);
+        glUniform1i(glGetUniformLocation(shader_program, "destTex"), transfer_tex);
+        glUniform1i(glGetUniformLocation(shader_program, "skybox"), skybox_tex);
 
 		glDispatchCompute(TEXTURE_WIDTH, TEXTURE_HEIGHT, 1);
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -52,6 +83,8 @@ void display() {
         glClear(GL_COLOR_BUFFER_BIT);
         glDrawArrays(GL_TRIANGLES, 0, 6);
         glutSwapBuffers();
+
+        update();
     }
 }
 
@@ -86,16 +119,31 @@ void init() {
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
+    //generate transfer texture
+    glGenTextures(1, &transfer_tex);
     glActiveTexture(GL_TEXTURE0);
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
+    glBindTexture(GL_TEXTURE_2D, transfer_tex);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexImage2D(
-		GL_TEXTURE_2D, 0, GL_RGBA32F, TEXTURE_WIDTH, TEXTURE_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
-    glBindImageTexture(0, texture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, TEXTURE_WIDTH, TEXTURE_HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr);
+    glBindImageTexture(0, transfer_tex, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+
+    //load skybox texture
+    glGenTextures(1, &skybox_tex);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, skybox_tex);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+    load_cubemap(skybox_tex, "textures/starmap", ".png");
+
+    //setup camera
+    camera.pos = glm::vec3(-100., 0., 0.);
+    camera.rot = glm::vec3(0., 0., 0.);
+    camera.fov = 100.;
 }
 
 int main(int argc, char** argv){
@@ -104,6 +152,9 @@ int main(int argc, char** argv){
     glutInitDisplayMode(GLUT_DOUBLE|GLUT_RGB);
     glutInitWindowSize(800, 600);
     glutCreateWindow("Black Hole Trace");
+
+    glutKeyboardFunc(on_key_press);
+    glutKeyboardUpFunc(on_key_release);
 
 	 // A call to glewInit() must be done after glut is initialized!
     GLenum res = glewInit();

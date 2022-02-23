@@ -3,17 +3,79 @@
 layout (local_size_x = 1, local_size_y = 1) in;
 
 layout (rgba32f, binding = 0) uniform image2D destTex;
+uniform samplerCube skybox;
 
-layout (location = 0) uniform vec2 uSize;
-//uniform float uTime;
+layout (location = 0) uniform vec2 size;
+
+struct Camera {
+    vec3 pos;
+    vec3 rot;
+    float fov;
+};
+
+layout (location = 1) uniform Camera camera;
+
+vec3 rx(vec3 v, float angle) {
+    vec3 ret;
+
+    if (angle != 0) {
+        angle = radians(angle);
+        ret.x = v.x;
+        ret.y = v.y * cos(angle) - v.z * sin(angle);
+        ret.z = v.y * sin(angle) + v.z * cos(angle);
+        return ret;
+    }
+    return v;
+}
+
+vec3 ry(vec3 v, float angle) {
+    vec3 ret;
+
+    if (angle != 0) {
+        angle = radians(angle);
+        ret.x = v.x * cos(angle) + v.z * sin(angle);
+        ret.y = v.y;
+        ret.z = v.z * cos(angle) - v.x * sin(angle);
+        return ret;
+    }
+    return v;
+}
+
+vec3 rz(vec3 v, float angle) {
+    vec3 ret;
+
+    if (angle != 0) {
+        angle = radians(angle);
+        ret.x = v.x * cos(angle) - v.y * sin(angle);
+        ret.y = v.x * sin(angle) + v.y * cos(angle);
+        ret.z = v.z;
+        return ret;
+    }
+    return v;
+}
+
+vec3 rotate(vec3 v, vec3 r) {
+    v = rx(v, r.x);
+    v = ry(v, r.y);
+    v = rz(v, r.z);
+    return v;
+}
+
+vec3 ppos_dir(vec2 pos) {
+    return normalize(vec3(
+        (size.x/2) - pos.x,
+        (size.y/2) - pos.y,
+        (size.x/2) / tan(radians(camera.fov / 2))
+    ));
+}
 
 void main() {
     float uTime = 0;
 
-    vec2 pos = gl_GlobalInvocationID.xy;
-    vec2 halfSize = uSize / 2.0;
-    float color = float(int(halfSize.x + ((halfSize.x + uTime) * sin(pos.x / 8.0)) + halfSize.y + ((halfSize.y + uTime) * sin(pos.y / 8.0)))) / 2.0 / 255.0;
+    vec2 ppos = gl_GlobalInvocationID.xy;
+    vec3 direction = normalize(rotate(ppos_dir(ppos), camera.rot));
 
-    imageStore(destTex, ivec2(pos), vec4(color, color, color, 1));
-    //imageStore(destTex, ivec2(pos), vec4(1, 1, 1, 1));
+    vec4 color = texture(skybox, direction);//?
+    color.w = 1;
+    imageStore(destTex, ivec2(ppos), color);
 }

@@ -1,4 +1,4 @@
-#include "blkhole/loadshaders.hpp"
+#include "bholetrace/load_shaders.hpp"
 
 #include <GL/glew.h>
 #include <GL/glut.h>
