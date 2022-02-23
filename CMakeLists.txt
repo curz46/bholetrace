@@ -27,6 +27,10 @@ find_package(GLUT REQUIRED)
 include_directories(${GLUT_INCLUDE_DIR})
 target_link_libraries(bhole ${GLUT_LIBRARIES})
 
+find_package(glfw3 REQUIRED)
+include_directories(${GLFW3_INCLUDE_DIR})
+target_link_libraries(bhole glfw)
+
 add_custom_command(TARGET bhole PRE_BUILD
                    COMMAND ${CMAKE_COMMAND} -E create_symlink 
                    ${CMAKE_SOURCE_DIR}/src/shaders ${CMAKE_CURRENT_BINARY_DIR}/shaders)

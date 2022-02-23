@@ -1,5 +1,8 @@
 #include <iostream>
+#include <sys/time.h>
+
 #include <GL/glew.h>
+#include <GLFW/glfw3.h>
 #include <GL/glut.h>
 
 #include <glm/vec3.hpp>
@@ -10,39 +13,46 @@
 
 using namespace std;
 
-const int TEXTURE_WIDTH = 400;
-const int TEXTURE_HEIGHT = 225;
+const int WINDOW_WIDTH  = 800;
+const int WINDOW_HEIGHT = 600;
 
-int ticks = 0;
+const int RAYCAST_WIDTH = 400;
+const int RAYCAST_HEIGHT = 300;
 
-struct Camera {
+static GLFWwindow *window;
+static int ticks = 0;
+
+static struct Camera {
     glm::vec3 pos;
     glm::vec3 rot;
     float fov;
 } camera;
 
 // The texture used for the compute shader to store its results
-GLuint transfer_tex;
+static GLuint transfer_tex;
 // The skybox texture (cube starmap)
-GLuint skybox_tex;
+static GLuint skybox_tex;
 
 // The program which computes the raycasts
-GLuint compute_program;
+static GLuint compute_program;
 // The (trivial) program which renders the resultant texture to the screen
-GLuint shader_program;
+static GLuint shader_program;
 
 // Vertex Array Object, Vertex Buffer Object
-GLuint vao;
-GLuint vbo;
+static GLuint vao;
+static GLuint vbo;
 
-static void on_key_press(unsigned char key, int _x, int _y) {
-    key_toggle(key, 1, ticks);
-    printf("on_key_press: %c\n", key);
+static void error_callback(int error, const char *description)
+{
+    fprintf(stderr, "Error: %s\n", description);
 }
 
-static void on_key_release(unsigned char key, int _x, int _y) {
-    key_toggle(key, 0, ticks);
-    printf("on_key_release: %c\n", key);
+static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
+{                                                                               
+    if (action == GLFW_PRESS)                                                   
+        key_toggle(key, 1, ticks);                                              
+    else if (action == GLFW_RELEASE)                                            
+        key_toggle(key, 0, ticks);                                              
 }
 
 static void update() {
@@ -50,28 +60,39 @@ static void update() {
 
     //printf("Update!\n");
 
-    if (key_pressed('a')) {
-        camera.rot.x += 5;
+    if (key_pressed(GLFW_KEY_A)) {
+        camera.rot.x += 0.25;
         printf("Rotated camera on +rotX.\n");
-    } else if (key_pressed('d')) {
-        camera.rot.x -= 5;
+    } else if (key_pressed(GLFW_KEY_D)) {
+        camera.rot.x -= 0.25;
         printf("Rotated camera on -rotX.\n");
     }
 }
 
-void display() {
-    while(1) {
+void loop() {
+    long long last_update = 0l;
+    while (! glfwWindowShouldClose(window)) {
+        struct timeval now;
+        gettimeofday(&now, NULL);
+        long long millis = now.tv_sec * 1000ll + now.tv_usec / 1000;
+
+        if ((millis - 1000/60) >= last_update) {
+            last_update = millis;
+            update(); 
+            ticks++;
+        }
+
         // COMPUTE
         glUseProgram(compute_program);
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
 
-		glUniform2f(0, TEXTURE_WIDTH, TEXTURE_HEIGHT);
+		glUniform2f(0, RAYCAST_WIDTH, RAYCAST_HEIGHT);
         glUniform1i(glGetUniformLocation(shader_program, "destTex"), transfer_tex);
         glUniform1i(glGetUniformLocation(shader_program, "skybox"), skybox_tex);
 
-		glDispatchCompute(TEXTURE_WIDTH, TEXTURE_HEIGHT, 1);
+		glDispatchCompute(RAYCAST_WIDTH, RAYCAST_HEIGHT, 1);
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
         // SHADER
@@ -82,9 +103,9 @@ void display() {
 
         glClear(GL_COLOR_BUFFER_BIT);
         glDrawArrays(GL_TRIANGLES, 0, 6);
-        glutSwapBuffers();
 
-        update();
+        glfwSwapBuffers(window);
+        glfwPollEvents();
     }
 }
 
@@ -125,7 +146,7 @@ void init() {
     glBindTexture(GL_TEXTURE_2D, transfer_tex);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, TEXTURE_WIDTH, TEXTURE_HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, RAYCAST_WIDTH, RAYCAST_HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr);
     glBindImageTexture(0, transfer_tex, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 
     //load skybox texture
@@ -146,15 +167,35 @@ void init() {
     camera.fov = 100.;
 }
 
-int main(int argc, char** argv){
+int main(int argc, char** argv) {
 	// Set up the window
-	glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_DOUBLE|GLUT_RGB);
-    glutInitWindowSize(800, 600);
-    glutCreateWindow("Black Hole Trace");
+	//glutInit(&argc, argv);
+    //glutInitDisplayMode(GLUT_DOUBLE|GLUT_RGB);
+    //glutInitWindowSize(800, 600);
+    //glutCreateWindow("Black Hole Trace");
 
-    glutKeyboardFunc(on_key_press);
-    glutKeyboardUpFunc(on_key_release);
+    //glutKeyboardFunc(on_key_press);
+    //glutKeyboardUpFunc(on_key_release);
+    
+    glfwSetErrorCallback(error_callback);
+
+    if (! glfwInit())
+        exit(EXIT_FAILURE);
+
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+
+    window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "BHOLETRACE", NULL, NULL);
+    if (! window) {
+        glfwTerminate();
+        exit(EXIT_FAILURE);
+    }
+
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetKeyCallback(window, key_callback);
+
+    glfwMakeContextCurrent(window);
+    glfwSwapInterval(0);
 
 	 // A call to glewInit() must be done after glut is initialized!
     GLenum res = glewInit();
@@ -163,12 +204,13 @@ int main(int argc, char** argv){
       fprintf(stderr, "Error: '%s'\n", glewGetErrorString(res));
       return 1;
     }
+
 	// Set up your objects and shaders
 	init();
-	// Tell glut where the display function is
-	glutDisplayFunc(display);
+	loop();
 
-	// Begin infinite event loop
-	glutMainLoop();
+    glfwDestroyWindow(window);
+    exit(EXIT_SUCCESS);
+
     return 0;
 }
