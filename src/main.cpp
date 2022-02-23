@@ -13,8 +13,8 @@
 
 using namespace std;
 
-const int WINDOW_WIDTH  = 800;
-const int WINDOW_HEIGHT = 600;
+const int WINDOW_WIDTH  = 1920;
+const int WINDOW_HEIGHT = 1080;
 
 const int RAYCAST_WIDTH = 400;
 const int RAYCAST_HEIGHT = 300;
@@ -129,12 +129,12 @@ void init() {
     glEnable(GL_TEXTURE_CUBE_MAP);
 
     GLfloat vertices[] = {
-        -1.f, -1.f,
-        -1.f, 1.f,
-        1.f, 1.f,
-        1.f, 1.f,
-        1.f, -1.f,
-        -1.f, -1.f
+        -1.f, -1.f, 0.f, 0.f,
+        -1.f, 1.f, 0.f, 1.f,
+        1.f, 1.f, 1.f, 1.f,
+        1.f, 1.f, 1.f, 1.f,
+        1.f, -1.f, 1.f, 0.f,
+        -1.f, -1.f, 0.f, 0.f
     };
 	// set vao, vbo globals
 	glGenVertexArrays(1, &vao);
@@ -144,10 +144,10 @@ void init() {
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
     glEnableVertexAttribArray(0);
-    //glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)(2 * sizeof(float)));
-    //glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)(2 * sizeof(float)));
+    glEnableVertexAttribArray(1);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -157,6 +157,9 @@ void init() {
     glBindTexture(GL_TEXTURE_2D, transfer_tex);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, RAYCAST_WIDTH, RAYCAST_HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr);
     glBindImageTexture(0, transfer_tex, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 
