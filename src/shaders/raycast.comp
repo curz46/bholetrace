@@ -70,12 +70,9 @@ vec3 ppos_dir(vec2 pos) {
 }
 
 void main() {
-    float uTime = 0;
-
     vec2 ppos = gl_GlobalInvocationID.xy;
     vec3 direction = normalize(rotate(ppos_dir(ppos), camera.rot));
 
-    vec4 color = texture(skybox, direction);//?
-    color.w = 1;
+    vec4 color = texture(skybox, direction);
     imageStore(destTex, ivec2(ppos), color);
 }

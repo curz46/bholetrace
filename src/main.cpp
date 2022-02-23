@@ -58,19 +58,23 @@ static void key_callback(GLFWwindow *window, int key, int scancode, int action, 
 static void update() {
     ticks++;
 
-    //printf("Update!\n");
-
     if (key_pressed(GLFW_KEY_A)) {
+        camera.rot.y += 0.25;
+    }
+    if (key_pressed(GLFW_KEY_D)) {
+        camera.rot.y -= 0.25;
+    }
+    if (key_pressed(GLFW_KEY_W)) {
         camera.rot.x += 0.25;
-        printf("Rotated camera on +rotX.\n");
-    } else if (key_pressed(GLFW_KEY_D)) {
+    }
+    if (key_pressed(GLFW_KEY_S)) {
         camera.rot.x -= 0.25;
-        printf("Rotated camera on -rotX.\n");
     }
 }
 
 void loop() {
     long long last_update = 0l;
+
     while (! glfwWindowShouldClose(window)) {
         struct timeval now;
         gettimeofday(&now, NULL);
@@ -88,9 +92,13 @@ void loop() {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
 
-		glUniform2f(0, RAYCAST_WIDTH, RAYCAST_HEIGHT);
-        glUniform1i(glGetUniformLocation(shader_program, "destTex"), transfer_tex);
-        glUniform1i(glGetUniformLocation(shader_program, "skybox"), skybox_tex);
+		glUniform2f(glGetUniformLocation(compute_program, "size"), RAYCAST_WIDTH, RAYCAST_HEIGHT);
+        glUniform1i(glGetUniformLocation(compute_program, "skybox"), 1);
+
+        //camera
+        glUniform3f(glGetUniformLocation(compute_program, "camera.pos"), camera.pos.x, camera.pos.y, camera.pos.z);
+        glUniform3f(glGetUniformLocation(compute_program, "camera.rot"), camera.rot.x, camera.rot.y, camera.rot.z);
+        glUniform1f(glGetUniformLocation(compute_program, "camera.fov"), camera.fov);
 
 		glDispatchCompute(RAYCAST_WIDTH, RAYCAST_HEIGHT, 1);
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -98,7 +106,9 @@ void loop() {
         // SHADER
         glUseProgram(shader_program);
 
-        //glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glUniform1i(glGetUniformLocation(shader_program, "sampler"), 0);
+
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glBindVertexArray(vao);
 
         glClear(GL_COLOR_BUFFER_BIT);
@@ -114,8 +124,9 @@ void init() {
     compute_program = init_compute_shader("shaders/raycast.comp");
     shader_program  = init_shader_pair("shaders/render.vert", "shaders/render.frag");
 
-    glEnable(GL_DEPTH_TEST);
+    //glEnable(GL_DEPTH_TEST);
     glEnable(GL_TEXTURE_2D);
+    glEnable(GL_TEXTURE_CUBE_MAP);
 
     GLfloat vertices[] = {
         -1.f, -1.f,
@@ -160,6 +171,7 @@ void init() {
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
     load_cubemap(skybox_tex, "textures/starmap", ".png");
+    //load_cubemap(skybox_tex, "textures/rakacropped", ".jpg");
 
     //setup camera
     camera.pos = glm::vec3(-100., 0., 0.);
@@ -169,21 +181,13 @@ void init() {
 
 int main(int argc, char** argv) {
 	// Set up the window
-	//glutInit(&argc, argv);
-    //glutInitDisplayMode(GLUT_DOUBLE|GLUT_RGB);
-    //glutInitWindowSize(800, 600);
-    //glutCreateWindow("Black Hole Trace");
-
-    //glutKeyboardFunc(on_key_press);
-    //glutKeyboardUpFunc(on_key_release);
-    
     glfwSetErrorCallback(error_callback);
 
     if (! glfwInit())
         exit(EXIT_FAILURE);
 
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 
     window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "BHOLETRACE", NULL, NULL);
     if (! window) {
@@ -210,6 +214,7 @@ int main(int argc, char** argv) {
 	loop();
 
     glfwDestroyWindow(window);
+    glfwTerminate();
     exit(EXIT_SUCCESS);
 
     return 0;
