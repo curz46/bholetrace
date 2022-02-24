@@ -16,8 +16,8 @@ using namespace std;
 const int WINDOW_WIDTH  = 1920;
 const int WINDOW_HEIGHT = 1080;
 
-const int RAYCAST_WIDTH = 400;
-const int RAYCAST_HEIGHT = 300;
+const int RAYCAST_WIDTH = 1920/4;
+const int RAYCAST_HEIGHT = 1080/4;
 
 static GLFWwindow *window;
 static int ticks = 0;
@@ -179,7 +179,7 @@ void init() {
     //setup camera
     camera.pos = glm::vec3(-100., 0., 0.);
     camera.rot = glm::vec3(0., 0., 0.);
-    camera.fov = 100.;
+    camera.fov = 70.;
 }
 
 int main(int argc, char** argv) {
