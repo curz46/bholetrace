@@ -1,10 +1,12 @@
 #include <iostream>
+#include <math.h>
 #include <sys/time.h>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <GL/glut.h>
 
+#include <glm/glm.hpp>
 #include <glm/vec3.hpp>
 
 #include "bholetrace/load_shaders.hpp"
@@ -58,16 +60,16 @@ static void key_callback(GLFWwindow *window, int key, int scancode, int action, 
 static void update() {
     ticks++;
 
-    if (key_pressed(GLFW_KEY_A)) {
+    if (key_pressed(GLFW_KEY_LEFT)) {
         camera.rot.y += 0.25;
     }
-    if (key_pressed(GLFW_KEY_D)) {
+    if (key_pressed(GLFW_KEY_RIGHT)) {
         camera.rot.y -= 0.25;
     }
-    if (key_pressed(GLFW_KEY_W)) {
+    if (key_pressed(GLFW_KEY_DOWN)) {
         camera.rot.x += 0.25;
     }
-    if (key_pressed(GLFW_KEY_S)) {
+    if (key_pressed(GLFW_KEY_UP)) {
         camera.rot.x -= 0.25;
     }
 }
