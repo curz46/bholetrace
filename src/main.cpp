@@ -18,8 +18,8 @@ using namespace std;
 const int WINDOW_WIDTH  = 1920;
 const int WINDOW_HEIGHT = 1080;
 
-const int RAYCAST_WIDTH = 1920/4;
-const int RAYCAST_HEIGHT = 1080/4;
+const int RAYCAST_WIDTH = 1920/2;
+const int RAYCAST_HEIGHT = 1080/2;
 
 static GLFWwindow *window;
 static int ticks = 0;
@@ -77,6 +77,8 @@ static void update() {
 void loop() {
     long long last_update = 0l;
 
+    float t = 0.;
+
     while (! glfwWindowShouldClose(window)) {
         struct timeval now;
         gettimeofday(&now, NULL);
@@ -87,6 +89,11 @@ void loop() {
             update(); 
             ticks++;
         }
+
+        float radius = 7.;
+        camera.pos = glm::vec3(radius * sin(t*M_PI/180), 0., radius * cos(t*M_PI/180));
+        camera.rot = glm::vec3(0., t, 0.);
+        t += 0.1;
 
         // COMPUTE
         glUseProgram(compute_program);
@@ -176,12 +183,12 @@ void init() {
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
     load_cubemap(skybox_tex, "textures/starmap", ".png");
-    //load_cubemap(skybox_tex, "textures/rakacropped", ".jpg");
+    //load_cubemap(skybox_tex, "textures/grid", ".png");
 
     //setup camera
-    camera.pos = glm::vec3(-100., 0., 0.);
-    camera.rot = glm::vec3(0., 0., 0.);
-    camera.fov = 70.;
+    camera.pos = glm::vec3(-25., 0., 0.);
+    camera.rot = glm::vec3(0., 70., 0.);
+    camera.fov = 90.;
 }
 
 int main(int argc, char** argv) {

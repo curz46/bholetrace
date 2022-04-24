@@ -98,16 +98,91 @@ vec3 ppos_dir(vec2 pos) {
     ));
 }
 
+//https://www.neilmendoza.com/glsl-rotation-about-an-arbitrary-axis/
+mat4 rotate_about_plane(vec3 axis, float angle) {
+    axis = normalize(axis);
+    float s = sin(angle);
+    float c = cos(angle);
+    float oc = 1.0 - c;
+
+    return mat4(oc * axis.x * axis.x + c,           oc * axis.x * axis.y - axis.z * s,  oc * axis.z * axis.x + axis.y * s,  0.0,
+                oc * axis.x * axis.y + axis.z * s,  oc * axis.y * axis.y + c,           oc * axis.y * axis.z - axis.x * s,  0.0,
+                oc * axis.z * axis.x - axis.y * s,  oc * axis.y * axis.z + axis.x * s,  oc * axis.z * axis.z + c,           0.0,
+                0.0,                                0.0,                                0.0,                                1.0);
+}
+
+float f(float a, float u, float z) {
+    return z;
+}
+
+float g(float a, float u, float z) {
+    return -u + (3/2)*u*u;
+}
+
+vec2 converge_r0(float a0, float u0, float z0, float max_u, float target_da) {
+    float h=0.5;
+    float al=a0;
+    float ul=u0;
+    for (int i = 0; i < 60; i++) {
+        float k1 = h * (f(a0, u0, z0));
+        float l1 = h * (g(a0, u0, z0));
+        float k2 = h * (f((a0+h/2), (u0+k1/2), (z0+l1/2)));
+        float l2 = h * (g((a0+h/2), (u0+k1/2), (z0+l1/2)));
+        float k3 = h * (f((a0+h/2), (u0+k2/2), (z0+l2/2)));
+        float l3 = h * (g((a0+h/2), (u0+k2/2), (z0+l2/2)));
+        float k4 = h * (f((a0+h), (u0+k3), (z0+l3)));
+        float l4 = h * (g((a0+h), (u0+k3), (z0+l3)));
+        float k = (k1+2*k2+2*k3+k4)/6;
+        float l = (l1+2*l2+2*l3+l4)/6;
+        a0=a0+h;
+        u0=u0+k;
+        z0=z0+l;
+        if (u0>max_u)
+            return vec2(a0, -1);
+        if (i>40 && abs(al-a0)<target_da)
+            return vec2(a0, u0);
+        if (ul>u0)
+            h=-h/4;
+        al=a0;
+        ul=u0;
+    }
+    return vec2(a0,u0);
+}
+
 void main() {
     vec2 ppos = gl_GlobalInvocationID.xy;
     vec3 direction = normalize(rotate(ppos_dir(ppos), camera.rot));
 
-    vec3 spos = vec3(100., 0., 100.);
-    float radius = 30;
+    vec3 spos = vec3(0., 0., 0.);
+    float radius = 1;
     vec4 color;
-    if (intersect_sphere(spos, radius, camera.pos, direction))
-        color = vec4(0.75, 0., 0., 1.);
-    else
-        color = texture(skybox, direction);
+    //if (intersect_sphere(spos, radius, camera.pos, direction))
+    //    color = vec4(0.75, 0., 0., 1.);
+    //else
+    //    color = texture(skybox, direction);
+
+    // get point on ray line
+    //vec3 p = camera.pos + rotate(vec3(ppos - size/(2),0)/100,camera.rot);
+    vec3 p = camera.pos;
+
+    // impact parameter
+    float b = length( cross(direction, p - spos) );
+
+    vec2 result = converge_r0(0,0,1/b,10,0.00001);
+    if (result[1] == -1) {
+        color = vec4(0,0,0,1);
+    } else {
+        float angle = result[0]*2;
+        //angle = 0;
+
+        // calculate normal N of plane containing black hole and ray   
+        vec3 l = p - spos;
+        vec3 N = cross(direction, l);
+        // rotate ray on plane by angle
+        vec4 resultant = rotate_about_plane(N, angle) * vec4(direction,1);
+        
+        color = texture(skybox, resultant.xyz);
+    }
+
     imageStore(destTex, ivec2(ppos), color);
 }
