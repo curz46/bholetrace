@@ -90,7 +90,7 @@ void loop() {
             ticks++;
         }
 
-        float radius = 7.;
+        float radius = 25.;
         camera.pos = glm::vec3(radius * sin(t*M_PI/180), 0., radius * cos(t*M_PI/180));
         camera.rot = glm::vec3(0., t, 0.);
         t += 0.1;
@@ -182,8 +182,9 @@ void init() {
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
-    load_cubemap(skybox_tex, "textures/starmap", ".png");
-    //load_cubemap(skybox_tex, "textures/grid", ".png");
+    //load_cubemap(skybox_tex, "textures/starmap", ".png");
+    load_cubemap(skybox_tex, "textures/grid", ".png");
+    //load_cubemap(skybox_tex, "textures/nebula", ".png");
 
     //setup camera
     camera.pos = glm::vec3(-25., 0., 0.);
