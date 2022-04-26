@@ -70,7 +70,7 @@ static void update() {
         else if (cubemap == 1)
             load_cubemap(skybox_tex, "textures/starmap", ".png");
         else if (cubemap == 2)
-            load_cubemap(skybox_tex, "textures/grid", ".png");
+            load_cubemap(skybox_tex, "textures/grid", ".jpg");
     }
     if (key_pressed_tick(GLFW_KEY_R, ticks)) {
         switch (rotate) {
@@ -109,8 +109,10 @@ static void update() {
 
 void loop() {
     long long last_update = 0l;
+    long long last_second = 0l;
 
     float t = 0.;
+    int frames = 0;
 
     while (! glfwWindowShouldClose(window)) {
         struct timeval now;
@@ -121,6 +123,13 @@ void loop() {
             last_update = millis;
             update(); 
             ticks++;
+        }
+        // track fps
+        frames++;
+        if ((millis - 1000) >= last_second) {
+            last_second = millis;
+            printf("%d frames per second\n", frames);
+            frames=0;
         }
 
         camera.pos = glm::vec3(orbit_radius * sin(t*M_PI/180), 0., orbit_radius * cos(t*M_PI/180));
