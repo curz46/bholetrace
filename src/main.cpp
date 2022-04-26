@@ -18,8 +18,8 @@ using namespace std;
 const int WINDOW_WIDTH  = 1920;
 const int WINDOW_HEIGHT = 1080;
 
-const int RAYCAST_WIDTH = 1920/2;
-const int RAYCAST_HEIGHT = 1080/2;
+const int RAYCAST_WIDTH = 1920/4;
+const int RAYCAST_HEIGHT = 1080/4;
 
 static GLFWwindow *window;
 static int ticks = 0;
@@ -29,6 +29,11 @@ static struct Camera {
     glm::vec3 rot;
     float fov;
 } camera;
+static glm::vec3 user_rot;
+static float orbit_radius = 25.;
+static int cubemap = 0;
+static int rotate = 2;
+static bool deflection = true;
 
 // The texture used for the compute shader to store its results
 static GLuint transfer_tex;
@@ -58,20 +63,48 @@ static void key_callback(GLFWwindow *window, int key, int scancode, int action, 
 }
 
 static void update() {
-    ticks++;
-
-    if (key_pressed(GLFW_KEY_LEFT)) {
-        camera.rot.y += 0.25;
+    if (key_pressed_tick(GLFW_KEY_Z, ticks)) {
+        cubemap = (cubemap + 1) % 3;
+        if (cubemap == 0)
+            load_cubemap(skybox_tex, "textures/nebula", ".png");
+        else if (cubemap == 1)
+            load_cubemap(skybox_tex, "textures/starmap", ".png");
+        else if (cubemap == 2)
+            load_cubemap(skybox_tex, "textures/grid", ".png");
     }
-    if (key_pressed(GLFW_KEY_RIGHT)) {
-        camera.rot.y -= 0.25;
+    if (key_pressed_tick(GLFW_KEY_R, ticks)) {
+        switch (rotate) {
+            case 0: rotate=1; break;
+            case 1: rotate=2; break;
+            case 2: rotate=4; break;
+            case 4: rotate=0; break;
+        }
+    }
+    if (key_pressed_tick(GLFW_KEY_L, ticks)) {
+        deflection=!deflection;
+    }
+    if (key_pressed(GLFW_KEY_A)) {
+        //camera.rot.y += 0.25;
+        user_rot.y += 0.75;
+    }
+    if (key_pressed(GLFW_KEY_D)) {
+        //camera.rot.y -= 0.25;
+        user_rot.y -= 0.75;
+    }
+    if (key_pressed(GLFW_KEY_W)) {
+        user_rot.x += 0.75;
+    }
+    if (key_pressed(GLFW_KEY_S)) {
+        user_rot.x -= 0.75;
     }
     if (key_pressed(GLFW_KEY_DOWN)) {
-        camera.rot.x += 0.25;
+        //camera.rot.x += 0.25;
+        orbit_radius -= 0.05*std::max(0.f,(float)pow(log(orbit_radius),3));
     }
     if (key_pressed(GLFW_KEY_UP)) {
-        camera.rot.x -= 0.25;
+        orbit_radius += 0.05*std::max(0.1f,(float)pow(log(orbit_radius),3));
     }
+    ticks++;
 }
 
 void loop() {
@@ -90,10 +123,9 @@ void loop() {
             ticks++;
         }
 
-        float radius = 25.;
-        camera.pos = glm::vec3(radius * sin(t*M_PI/180), 0., radius * cos(t*M_PI/180));
-        camera.rot = glm::vec3(0., t, 0.);
-        t += 0.1;
+        camera.pos = glm::vec3(orbit_radius * sin(t*M_PI/180), 0., orbit_radius * cos(t*M_PI/180));
+        camera.rot = glm::vec3(0., t+180, 0.) + user_rot;
+        t += 0.05*rotate;
 
         // COMPUTE
         glUseProgram(compute_program);
@@ -108,6 +140,9 @@ void loop() {
         glUniform3f(glGetUniformLocation(compute_program, "camera.pos"), camera.pos.x, camera.pos.y, camera.pos.z);
         glUniform3f(glGetUniformLocation(compute_program, "camera.rot"), camera.rot.x, camera.rot.y, camera.rot.z);
         glUniform1f(glGetUniformLocation(compute_program, "camera.fov"), camera.fov);
+
+        //deflection
+        glUniform1i(glGetUniformLocation(compute_program, "deflection"), deflection);
 
 		glDispatchCompute(RAYCAST_WIDTH, RAYCAST_HEIGHT, 1);
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -183,12 +218,12 @@ void init() {
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
     //load_cubemap(skybox_tex, "textures/starmap", ".png");
-    load_cubemap(skybox_tex, "textures/grid", ".png");
-    //load_cubemap(skybox_tex, "textures/nebula", ".png");
+    //load_cubemap(skybox_tex, "textures/grid", ".png");
+    load_cubemap(skybox_tex, "textures/nebula", ".png");
 
     //setup camera
     camera.pos = glm::vec3(-25., 0., 0.);
-    camera.rot = glm::vec3(0., 70., 0.);
+    camera.rot = glm::vec3(0., 0., 0.);
     camera.fov = 90.;
 }
 
