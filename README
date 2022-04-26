@@ -5,7 +5,26 @@ Install these on your machine before attempting to build BHOLETRACE.
 * freeglut3-dev (glut)
 * libglew-dev (glew)
 
+BUILDING
+
+mkdir -p build && cd build
+cmake ..
+make
+./bin/bhole # to run
+
+KEYBINDS
+
+* WASD to rotate camera
+* UP/DOWN arrow keys to increase/decrease orbit radius
+* Z to enumerate through skyboxes (nebula takes a while to load, give it some time)
+* R to enumerate through orbit speeds
+* L to toggle on/off deflection of light
+
 CREDITS
+
+* Luca Bertozzi (https://github.com/ekardnam)
+
+Very kindly solved the Binet equation differential for use in integration.
 
 * https://github.com/blottn/opengl-quickstart/blob/master/main.cpp
 
