@@ -5,6 +5,11 @@ Install these on your machine before attempting to build BHOLETRACE.
 * freeglut3-dev (glut)
 * libglew-dev (glew)
 
+DEPENDENCIES
+
+* lib/std_image (included)
+* lib/glm (included as git submodule)
+
 BUILDING
 
 git submodule update --init --recursive # pull lib/glm
@@ -36,5 +41,11 @@ Used as a reference for initial GLEW/shader boilerplate.
 Used as a reference for rotation logic to do with raytracing. Helped with the
 concept of using a transfer texture to allow compute shaders to render to the
 screen.
+
+* https://www.codesansar.com/numerical-methods/runge-kutta-fourth-order-rk4-python-program.htm
+
+Used as a reference for an implementation of 4th-order Runge-Kutta, but modified to
+converge on a solution based on the properties of the Binet equation and to take
+two related differential equations instead of one.
 
 * https://github.com/nothings/stb/blob/master/stb_image.h (image loading)
