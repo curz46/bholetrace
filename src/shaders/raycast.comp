@@ -48,6 +48,8 @@ bool intersect_sphere(vec3 spos, float radius, vec3 origin, vec3 dir) {
     return t0 > 0;
 }
 
+//rx,ry,rz,rotate functions
+//https://github.com/Hirevo/OpenGL-Raytracer/blob/master/shaders/raytrace.cs
 vec3 rx(vec3 v, float angle) {
     vec3 ret;
 
@@ -127,7 +129,8 @@ vec2 converge_r0(float a0, float u0, float z0, float max_u, float target_da) {
     float h=0.5;
     float al=a0;
     float ul=u0;
-    for (int i = 0; i < 500; i++) {
+    //float zl=z0;
+    for (int i = 0; i < 100; i++) {
         float k1 = h * (f(a0, u0, z0));
         float l1 = h * (g(a0, u0, z0));
         float k2 = h * (f((a0+h/2), (u0+k1/2), (z0+l1/2)));
@@ -149,6 +152,7 @@ vec2 converge_r0(float a0, float u0, float z0, float max_u, float target_da) {
             h=-h/4;
         al=a0;
         ul=u0;
+        //zl=z0;
     }
     return vec2(a0,u0);
 }
@@ -168,12 +172,12 @@ void main() {
     float b = length( cross(direction, p - spos) );
 
     if (deflection) {
-        vec2 result = converge_r0(0,0,1/b,100,0.00000001);
+        // compute deflection
+        vec2 result = converge_r0(0,0,1/b,1,0.00001);
         if (result[1] == -1) {
             color = vec4(0,0,0,1);
         } else {
             float angle = result[0]*2 - M_PI;
-            //angle = 0;
 
             // calculate normal N of plane containing black hole and ray   
             vec3 l = p - spos;
@@ -184,6 +188,7 @@ void main() {
             color = texture(skybox, resultant.xyz);
         }
     } else {
+        //just render event horizon
         if (intersect_sphere(spos, radius, camera.pos, direction))
             color = vec4(0, 0., 0., 1.);
         else

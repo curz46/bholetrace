@@ -18,8 +18,8 @@ using namespace std;
 const int WINDOW_WIDTH  = 1920;
 const int WINDOW_HEIGHT = 1080;
 
-const int RAYCAST_WIDTH = 1920/4;
-const int RAYCAST_HEIGHT = 1080/4;
+const int RAYCAST_WIDTH = 1920/2;
+const int RAYCAST_HEIGHT = 1080/2;
 
 static GLFWwindow *window;
 static int ticks = 0;
@@ -74,21 +74,19 @@ static void update() {
     }
     if (key_pressed_tick(GLFW_KEY_R, ticks)) {
         switch (rotate) {
-            case 0: rotate=1; break;
-            case 1: rotate=2; break;
-            case 2: rotate=4; break;
-            case 4: rotate=0; break;
+            case 4: rotate=2; break;
+            case 2: rotate=1; break;
+            case 1: rotate=0; break;
+            case 0: rotate=4; break;
         }
     }
     if (key_pressed_tick(GLFW_KEY_L, ticks)) {
         deflection=!deflection;
     }
     if (key_pressed(GLFW_KEY_A)) {
-        //camera.rot.y += 0.25;
         user_rot.y += 0.75;
     }
     if (key_pressed(GLFW_KEY_D)) {
-        //camera.rot.y -= 0.25;
         user_rot.y -= 0.75;
     }
     if (key_pressed(GLFW_KEY_W)) {
@@ -97,8 +95,8 @@ static void update() {
     if (key_pressed(GLFW_KEY_S)) {
         user_rot.x -= 0.75;
     }
+    //log here makes us approach blackhole slower as we get closer
     if (key_pressed(GLFW_KEY_DOWN)) {
-        //camera.rot.x += 0.25;
         orbit_radius -= 0.05*std::max(0.f,(float)pow(log(orbit_radius),3));
     }
     if (key_pressed(GLFW_KEY_UP)) {
@@ -107,18 +105,32 @@ static void update() {
     ticks++;
 }
 
+long long micro_now() {
+    struct timeval now;
+    gettimeofday(&now, NULL);
+    return now.tv_sec * 1000000ll + now.tv_usec;
+}
+
+long long millis_now() {
+    struct timeval now;
+    gettimeofday(&now, NULL);
+    return now.tv_sec * 1000ll + now.tv_usec / 1000;
+}
+
 void loop() {
     long long last_update = 0l;
     long long last_second = 0l;
+    long long last_avg = micro_now();
 
     float t = 0.;
+    int fps = 0;
     int frames = 0;
+    
+    int fps_low = -1;
+    const int avg_interval = 1000;
 
     while (! glfwWindowShouldClose(window)) {
-        struct timeval now;
-        gettimeofday(&now, NULL);
-        long long millis = now.tv_sec * 1000ll + now.tv_usec / 1000;
-
+        long long millis = millis_now();
         if ((millis - 1000/60) >= last_update) {
             last_update = millis;
             update(); 
@@ -126,12 +138,29 @@ void loop() {
         }
         // track fps
         frames++;
+        fps++;
         if ((millis - 1000) >= last_second) {
+            printf("%d frames per second\n", fps);
+            fps=0;
             last_second = millis;
-            printf("%d frames per second\n", frames);
-            frames=0;
+
+            if (fps_low == -1 || fps_low>fps)
+                fps_low = fps;
+        }
+        // track average fps
+        if (frames>0 && frames % avg_interval == 0) {
+            long long mnow = micro_now();
+            long long elapsed = mnow - last_avg;
+            float avg_fps = avg_interval / (elapsed/(float)1000000);
+            float frame_time = elapsed / (float)avg_interval;
+            float T_total = frame_time / (float)(RAYCAST_WIDTH*RAYCAST_HEIGHT);
+            printf("average fps: %f, average frame time: %f us, average ray time: %f us\n",
+                    avg_fps, frame_time, T_total);
+            last_avg = mnow;
         }
 
+        //orbit oscillation for consistent testing
+        //orbit_radius = 20 + 17.5 * sin((millis/10 % 360) * M_PI/180);
         camera.pos = glm::vec3(orbit_radius * sin(t*M_PI/180), 0., orbit_radius * cos(t*M_PI/180));
         camera.rot = glm::vec3(0., t+180, 0.) + user_rot;
         t += 0.05*rotate;
@@ -153,6 +182,7 @@ void loop() {
         //deflection
         glUniform1i(glGetUniformLocation(compute_program, "deflection"), deflection);
 
+        //perform raytracing
 		glDispatchCompute(RAYCAST_WIDTH, RAYCAST_HEIGHT, 1);
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
@@ -165,6 +195,7 @@ void loop() {
         glBindVertexArray(vao);
 
         glClear(GL_COLOR_BUFFER_BIT);
+        //render to screen
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
         glfwSwapBuffers(window);
@@ -227,7 +258,7 @@ void init() {
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
     //load_cubemap(skybox_tex, "textures/starmap", ".png");
-    //load_cubemap(skybox_tex, "textures/grid", ".png");
+    //load_cubemap(skybox_tex, "textures/grid", ".jpg");
     load_cubemap(skybox_tex, "textures/nebula", ".png");
 
     //setup camera
@@ -237,7 +268,6 @@ void init() {
 }
 
 int main(int argc, char** argv) {
-	// Set up the window
     glfwSetErrorCallback(error_callback);
 
     if (! glfwInit())
@@ -258,15 +288,12 @@ int main(int argc, char** argv) {
     glfwMakeContextCurrent(window);
     glfwSwapInterval(0);
 
-	 // A call to glewInit() must be done after glut is initialized!
     GLenum res = glewInit();
-	// Check for any errors
     if (res != GLEW_OK) {
       fprintf(stderr, "Error: '%s'\n", glewGetErrorString(res));
       return 1;
     }
 
-	// Set up your objects and shaders
 	init();
 	loop();
 

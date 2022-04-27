@@ -7,6 +7,7 @@ Install these on your machine before attempting to build BHOLETRACE.
 
 BUILDING
 
+git submodule update --init --recursive # pull lib/glm
 mkdir -p build && cd build
 cmake ..
 make
@@ -16,8 +17,8 @@ KEYBINDS
 
 * WASD to rotate camera
 * UP/DOWN arrow keys to increase/decrease orbit radius
-* Z to enumerate through skyboxes (nebula takes a while to load, give it some time)
-* R to enumerate through orbit speeds
+* Z to enumerate over skyboxes (nebula takes a while to load, give it some time)
+* R to enumerate over orbit speeds
 * L to toggle on/off deflection of light
 
 CREDITS
@@ -29,5 +30,11 @@ Very kindly solved the Binet equation differential for use in integration.
 * https://github.com/blottn/opengl-quickstart/blob/master/main.cpp
 
 Used as a reference for initial GLEW/shader boilerplate.
+
+* https://github.com/Hirevo/OpenGL-Raytracer
+
+Used as a reference for rotation logic to do with raytracing. Helped with the
+concept of using a transfer texture to allow compute shaders to render to the
+screen.
 
 * https://github.com/nothings/stb/blob/master/stb_image.h (image loading)

@@ -9,7 +9,7 @@
 #include "bholetrace/load_textures.hpp"
 
 /*
- * Load cube map textures into 
+ * Load cube map textures into OpenGL
  *
  * See bholetrace/load_textures.h for a full definition.
  */
